@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mon Budget</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1a1a1a;
+    --accent: #0a5c36;
+    --accent-fg: #ffffff;
+    --border: #999999;
+    --muted: #555555;
+    --danger: #8a1c1c;
+    --field-bg: #ffffff;
+    --tab-bg: #eeeeee;
+    --tab-active: #0a5c36;
+    --pos: #0a5c36;
+    --neg: #8a1c1c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 18px;
+    line-height: 1.5;
+    color: var(--fg);
+    background: var(--bg);
+    margin: 0;
+    padding: 0;
+  }
+  h1 { font-size: 1.6em; margin: 0.4em 0; }
+  h2 { font-size: 1.3em; margin: 0.6em 0 0.3em; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 12px 14px 60px; }
+  header { padding: 8px 0 4px; }
+  nav[role="tablist"] {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 8px 0 14px;
+  }
+  nav[role="tablist"] button {
+    flex: 1 1 auto;
+    min-width: 110px;
+    padding: 12px 8px;
+    font-size: 1em;
+    font-family: inherit;
+    background: var(--tab-bg);
+    color: var(--fg);
+    border: 2px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  nav[role="tablist"] button[aria-selected="true"] {
+    background: var(--tab-active);
+    color: var(--accent-fg);
+    border-color: var(--tab-active);
+    font-weight: bold;
+  }
+  section[role="tabpanel"] { outline: none; }
+  label { display: block; font-weight: bold; margin: 10px 0 3px; }
+  input, select, textarea {
+    width: 100%;
+    padding: 11px;
+    font-size: 1em;
+    font-family: inherit;
+    border: 2px solid var(--border);
+    border-radius: 6px;
+    background: var(--field-bg);
+    color: var(--fg);
+  }
+  button {
+    font-family: inherit;
+  }
+  .btn {
+    display: inline-block;
+    padding: 12px 16px;
+    font-size: 1em;
+    background: var(--accent);
+    color: var(--accent-fg);
+    border: 2px solid var(--accent);
+    border-radius: 6px;
+    cursor: pointer;
+    margin: 10px 0;
+  }
+  .btn-secondary {
+    background: var(--bg);
+    color: var(--accent);
+  }
+  .btn-danger {
+    background: var(--bg);
+    color: var(--danger);
+    border-color: var(--danger);
+  }
+  .btn-small {
+    padding: 8px 12px;
+    font-size: 0.95em;
+    margin: 4px 6px 4px 0;
+  }
+  .accordion-btn {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 13px 14px;
+    font-size: 1.05em;
+    font-family: inherit;
+    background: var(--tab-bg);
+    color: var(--fg);
+    border: 2px solid var(--border);
+    border-radius: 6px;
+    margin: 6px 0;
+    cursor: pointer;
+  }
+  .accordion-btn.level2 { margin-left: 14px; width: calc(100% - 14px); background: #f6f6f6; }
+  .accordion-region { margin: 4px 0 8px; }
+  .accordion-region.level2 { margin-left: 28px; }
+  .line {
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin: 6px 0;
+  }
+  .line .amount { font-weight: bold; }
+  .total-line {
+    font-weight: bold;
+    padding: 6px 0;
+  }
+  .montant-pos { color: var(--pos); }
+  .montant-neg { color: var(--neg); }
+  .row-actions { margin-top: 6px; }
+  .field-inline { margin: 6px 0; }
+  .visually-hidden {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0);
+    white-space: nowrap; border: 0;
+  }
+  .hint { color: var(--muted); font-size: 0.9em; margin: 2px 0 0; }
+  .empty { color: var(--muted); font-style: italic; padding: 8px 0; }
+  hr { border: none; border-top: 2px solid var(--border); margin: 18px 0; }
+  .group { border: 2px solid var(--border); border-radius: 8px; padding: 12px; margin: 12px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Mon Budget</h1>
+  </header>
+
+  <nav role="tablist" aria-label="Sections de l'application">
+    <button role="tab" id="tab-bord" aria-selected="true" aria-controls="panel-bord" onclick="selectTab('bord')">Tableau de bord</button>
+    <button role="tab" id="tab-depenses" aria-selected="false" aria-controls="panel-depenses" onclick="selectTab('depenses')">Dépenses</button>
+    <button role="tab" id="tab-revenus" aria-selected="false" aria-controls="panel-revenus" onclick="selectTab('revenus')">Revenus</button>
+    <button role="tab" id="tab-historique" aria-selected="false" aria-controls="panel-historique" onclick="selectTab('historique')">Historique</button>
+  </nav>
+
+  <section role="tabpanel" id="panel-bord" aria-labelledby="tab-bord" tabindex="-1"></section>
+  <section role="tabpanel" id="panel-depenses" aria-labelledby="tab-depenses" tabindex="-1" hidden></section>
+  <section role="tabpanel" id="panel-revenus" aria-labelledby="tab-revenus" tabindex="-1" hidden></section>
+  <section role="tabpanel" id="panel-historique" aria-labelledby="tab-historique" tabindex="-1" hidden></section>
+</div>
+
+<script>
+"use strict";
+
+/* ---------- Données ---------- */
+var STORAGE_KEY = "budget_app_v1";
+var db = {
+  depenses: [],
+  revenus: [],
+  sousRubriquesEssentiel: [],
+  sousRubriquesGaspi: [],
+  libellesRevenus: [],
+  lastModified: null
+};
+
+function loadDb() {
+  try {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      var parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") {
+        db.depenses = Array.isArray(parsed.depenses) ? parsed.depenses : [];
+        db.revenus = Array.isArray(parsed.revenus) ? parsed.revenus : [];
+        db.sousRubriquesEssentiel = Array.isArray(parsed.sousRubriquesEssentiel) ? parsed.sousRubriquesEssentiel : [];
+        db.sousRubriquesGaspi = Array.isArray(parsed.sousRubriquesGaspi) ? parsed.sousRubriquesGaspi : [];
+        db.libellesRevenus = Array.isArray(parsed.libellesRevenus) ? parsed.libellesRevenus : [];
+        db.lastModified = parsed.lastModified || null;
+      }
+    }
+  } catch (e) {
+    console.error("Erreur de chargement", e);
+  }
+}
+
+function saveDb() {
+  db.lastModified = new Date().toISOString();
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+  } catch (e) {
+    alert("Erreur lors de l'enregistrement des données.");
+    console.error(e);
+  }
+}
+
+function derniereModifHtml() {
+  if (!db.lastModified) {
+    return '<p class="hint">Aucune modification enregistrée pour le moment.</p>';
+  }
+  var d = new Date(db.lastModified);
+  if (isNaN(d.getTime())) {
+    return "";
+  }
+  var txt = d.getDate() + " " + MOIS_NOMS[d.getMonth()].toLowerCase() + " " + d.getFullYear() +
+            " à " + pad2(d.getHours()) + "h" + pad2(d.getMinutes());
+  return '<p class="hint">Dernière modification : ' + escapeHtml(txt) + "</p>";
+}
+
+/* ---------- Utilitaires ---------- */
+var MOIS_NOMS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+
+function genId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+function pad2(n) {
+  return (n < 10 ? "0" : "") + n;
+}
+
+function moisCourant() {
+  var d = new Date();
+  return d.getFullYear() + "-" + pad2(d.getMonth() + 1);
+}
+
+function moisLisible(moisKey) {
+  var parts = moisKey.split("-");
+  var an = parseInt(parts[0], 10);
+  var mo = parseInt(parts[1], 10);
+  if (isNaN(an) || isNaN(mo) || mo < 1 || mo > 12) return moisKey;
+  return MOIS_NOMS[mo - 1] + " " + an;
+}
+
+function formatMontant(n) {
+  var v = Math.round(Math.abs(n) * 100) / 100;
+  var s = v.toFixed(2).replace(".", ",");
+  return s + " euros";
+}
+
+/* Montant signé en lettres pour VoiceOver : "moins" écrit en toutes lettres si négatif */
+function formatMontantSigne(n) {
+  var arrondi = Math.round(n * 100) / 100;
+  if (arrondi < 0) {
+    return "moins " + formatMontant(arrondi);
+  }
+  return formatMontant(arrondi);
+}
+
+function classeMontant(n) {
+  return (Math.round(n * 100) / 100) < 0 ? "montant-neg" : "montant-pos";
+}
+
+/* Pourcentage : numerateur / denominateur. "non calculable" si denominateur nul.
+   Signe "moins" en toutes lettres si négatif (VoiceOver ne lit pas le tiret). */
+function formatPct(numerateur, denominateur) {
+  if (!denominateur) {
+    return "non calculable";
+  }
+  var pct = (numerateur / denominateur) * 100;
+  var arrondi = Math.round(pct * 10) / 10;
+  var s = Math.abs(arrondi).toFixed(1).replace(".", ",");
+  if (arrondi < 0) {
+    return "moins " + s + " %";
+  }
+  return s + " %";
+}
+
+function classePct(numerateur, denominateur) {
+  if (!denominateur) return "montant-pos";
+  return ((numerateur / denominateur) < 0) ? "montant-neg" : "montant-pos";
+}
+
+function escapeHtml(s) {
+  if (s === null || s === undefined) return "";
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/* ---------- État de navigation ---------- */
+var etat = {
+  tab: "bord",
+  bordMois: moisCourant(),
+  depMois: moisCourant(),
+  depFiltre: "rubrique",
+  revMois: moisCourant(),
+  histAnnee: String(new Date().getFullYear())
+};
+
+/* listes de mois disponibles (à partir des données + mois courant) */
+function moisDisponibles() {
+  var set = {};
+  set[moisCourant()] = true;
+  db.depenses.forEach(function (d) { if (d.mois) set[d.mois] = true; });
+  db.revenus.forEach(function (r) { if (r.mois) set[r.mois] = true; });
+  var arr = Object.keys(set);
+  arr.sort();
+  arr.reverse();
+  return arr;
+}
+
+function anneesDisponibles() {
+  var set = {};
+  set[String(new Date().getFullYear())] = true;
+  db.depenses.forEach(function (d) { if (d.mois) set[d.mois.split("-")[0]] = true; });
+  db.revenus.forEach(function (r) { if (r.mois) set[r.mois.split("-")[0]] = true; });
+  var arr = Object.keys(set);
+  arr.sort();
+  arr.reverse();
+  return arr;
+}
+
+/* ---------- Calculs ---------- */
+function depensesDuMois(moisKey) {
+  return db.depenses.filter(function (d) { return d.mois === moisKey; });
+}
+function revenusDuMois(moisKey) {
+  return db.revenus.filter(function (r) { return r.mois === moisKey; });
+}
+function totalDepensesMois(moisKey) {
+  return depensesDuMois(moisKey).reduce(function (s, d) { return s + d.montant; }, 0);
+}
+function totalRevenusMois(moisKey) {
+  return revenusDuMois(moisKey).reduce(function (s, r) { return s + r.montant; }, 0);
+}
+
+/* ---------- Onglets ---------- */
+function selectTab(tab) {
+  etat.tab = tab;
+  var tabs = ["bord", "depenses", "revenus", "historique"];
+  tabs.forEach(function (t) {
+    var btn = document.getElementById("tab-" + t);
+    var panel = document.getElementById("panel-" + t);
+    var sel = (t === tab);
+    btn.setAttribute("aria-selected", sel ? "true" : "false");
+    if (sel) {
+      panel.removeAttribute("hidden");
+    } else {
+      panel.setAttribute("hidden", "");
+    }
+  });
+  render();
+  var activePanel = document.getElementById("panel-" + tab);
+  if (activePanel) activePanel.focus();
+}
+
+/* ---------- Accordéon générique ---------- */
+function toggleAccordion(btnId, regionId) {
+  var btn = document.getElementById(btnId);
+  var region = document.getElementById(regionId);
+  if (!btn || !region) return;
+  var expanded = btn.getAttribute("aria-expanded") === "true";
+  btn.setAttribute("aria-expanded", expanded ? "false" : "true");
+  if (expanded) {
+    region.setAttribute("hidden", "");
+  } else {
+    region.removeAttribute("hidden");
+  }
+}
+
+/* ============================================================
+   RENDU
+   ============================================================ */
+function render() {
+  if (etat.tab === "bord") renderBord();
+  else if (etat.tab === "depenses") renderDepenses();
+  else if (etat.tab === "revenus") renderRevenus();
+  else if (etat.tab === "historique") renderHistorique();
+}
+
+/* Sélecteur de mois pour les formulaires de saisie :
+   mois existants + plage autour du mois courant (12 mois passés, 3 à venir),
+   mois courant sélectionné par défaut. Évite l'input type=month natif. */
+function moisFormSelectHtml(id) {
+  var set = {};
+  var d = new Date();
+  var baseAn = d.getFullYear();
+  var baseMo = d.getMonth(); /* 0-11 */
+  var i;
+  for (i = -12; i <= 3; i++) {
+    var dt = new Date(baseAn, baseMo + i, 1);
+    set[dt.getFullYear() + "-" + pad2(dt.getMonth() + 1)] = true;
+  }
+  db.depenses.forEach(function (x) { if (x.mois) set[x.mois] = true; });
+  db.revenus.forEach(function (x) { if (x.mois) set[x.mois] = true; });
+  var courant = moisCourant();
+  set[courant] = true;
+  var arr = Object.keys(set);
+  arr.sort();
+  arr.reverse();
+  var html = '<select id="' + id + '">';
+  for (i = 0; i < arr.length; i++) {
+    html += '<option value="' + escapeHtml(arr[i]) + '"' + (arr[i] === courant ? " selected" : "") + ">" + escapeHtml(moisLisible(arr[i])) + "</option>";
+  }
+  html += "</select>";
+  return html;
+}
+
+
+function moisSelectHtml(id, valeur, onchangeName) {
+  var dispo = moisDisponibles();
+  if (dispo.indexOf(valeur) === -1) {
+    dispo.unshift(valeur);
+    dispo.sort();
+    dispo.reverse();
+  }
+  var html = '<label for="' + id + '">Mois affiché</label>';
+  html += '<select id="' + id + '" onchange="' + onchangeName + '(this.value)">';
+  for (var i = 0; i < dispo.length; i++) {
+    var m = dispo[i];
+    html += '<option value="' + escapeHtml(m) + '"' + (m === valeur ? " selected" : "") + ">" + escapeHtml(moisLisible(m)) + "</option>";
+  }
+  html += "</select>";
+  return html;
+}
+
+/* ============================================================
+   TABLEAU DE BORD
+   ============================================================ */
+function changeBordMois(v) { etat.bordMois = v; renderBord(); }
+
+function renderBord() {
+  var panel = document.getElementById("panel-bord");
+  var mois = etat.bordMois;
+  var totalDep = totalDepensesMois(mois);
+  var totalRev = totalRevenusMois(mois);
+  var diff = totalRev - totalDep;
+
+  var html = "";
+  html += "<h2>Tableau de bord</h2>";
+  html += derniereModifHtml();
+  html += moisSelectHtml("bord-mois", mois, "changeBordMois");
+  html += "<hr>";
+
+  /* --- Bouton/accordéon Dépenses --- */
+  html += '<button class="accordion-btn" id="acc-dep" aria-expanded="false" aria-controls="reg-dep" onclick="toggleAccordion(\'acc-dep\',\'reg-dep\')">';
+  html += "Dépenses : " + formatMontant(totalDep);
+  html += "</button>";
+  html += '<div class="accordion-region" id="reg-dep" role="region" aria-labelledby="acc-dep" hidden>';
+  html += renderBordCategorie(mois, "Essentiel");
+  html += renderBordCategorie(mois, "Gaspi");
+  html += "</div>";
+
+  /* --- Bouton/accordéon Revenus --- */
+  html += '<button class="accordion-btn" id="acc-rev" aria-expanded="false" aria-controls="reg-rev" onclick="toggleAccordion(\'acc-rev\',\'reg-rev\')">';
+  html += "Revenus : " + formatMontant(totalRev);
+  html += "</button>";
+  html += '<div class="accordion-region" id="reg-rev" role="region" aria-labelledby="acc-rev" hidden>';
+  html += renderBordRevenus(mois);
+  html += "</div>";
+
+  /* --- Différence --- */
+  html += '<p class="total-line">Différence : <span class="' + classeMontant(diff) + '">' + formatMontantSigne(diff) + "</span></p>";
+
+  /* --- Indicateurs --- */
+  html += renderBordIndicateurs(mois, totalDep, totalRev, diff);
+
+  panel.innerHTML = html;
+}
+
+function renderBordIndicateurs(mois, totalDep, totalRev, diff) {
+  var deps = depensesDuMois(mois);
+  var totalEss = deps.filter(function (d) { return d.principal === "Essentiel"; })
+                     .reduce(function (s, d) { return s + d.montant; }, 0);
+  var totalGas = deps.filter(function (d) { return d.principal === "Gaspi"; })
+                     .reduce(function (s, d) { return s + d.montant; }, 0);
+
+  var html = "";
+  html += "<hr>";
+  html += "<h2>Indicateurs</h2>";
+
+  /* 1. Dépenses / Revenus */
+  html += '<p class="total-line">Dépenses : ' + formatPct(totalDep, totalRev) + "</p>";
+
+  /* 2. Essentiel et Gaspi en part des dépenses */
+  html += '<p class="total-line">Essentiel : ' + formatPct(totalEss, totalDep) + "</p>";
+  html += '<p class="total-line">Gaspi : ' + formatPct(totalGas, totalDep) + "</p>";
+
+  /* 3. Gaspi / Revenus */
+  html += '<p class="total-line">Gaspi sur revenus : ' + formatPct(totalGas, totalRev) + "</p>";
+
+  /* 4. Chaque sous-rubrique en part des revenus, à la suite */
+  var parRub = {};
+  deps.forEach(function (d) {
+    var r = d.sousRubrique || "(sans rubrique)";
+    if (!parRub[r]) parRub[r] = 0;
+    parRub[r] += d.montant;
+  });
+  var rubs = Object.keys(parRub);
+  rubs.sort();
+  for (var i = 0; i < rubs.length; i++) {
+    html += '<p class="total-line">' + escapeHtml(rubs[i]) + " sur revenus : " + formatPct(parRub[rubs[i]], totalRev) + "</p>";
+  }
+
+  /* 5. Différence / Revenus (peut être négatif) */
+  html += '<p class="total-line">Différence : <span class="' + classePct(diff, totalRev) + '">' + formatPct(diff, totalRev) + "</span></p>";
+
+  return html;
+}
+
+function renderBordCategorie(mois, cat) {
+  var deps = depensesDuMois(mois).filter(function (d) { return d.principal === cat; });
+  var total = deps.reduce(function (s, d) { return s + d.montant; }, 0);
+  var key = cat === "Essentiel" ? "ess" : "gas";
+  var accId = "acc-cat-" + key;
+  var regId = "reg-cat-" + key;
+
+  var html = "";
+  html += '<button class="accordion-btn level2" id="' + accId + '" aria-expanded="false" aria-controls="' + regId + '" onclick="toggleAccordion(\'' + accId + '\',\'' + regId + '\')">';
+  html += escapeHtml(cat) + " : " + formatMontant(total);
+  html += "</button>";
+  html += '<div class="accordion-region level2" id="' + regId + '" role="region" aria-labelledby="' + accId + '" hidden>';
+
+  /* total cumulé par sous-rubrique */
+  var parRub = {};
+  deps.forEach(function (d) {
+    var r = d.sousRubrique || "(sans rubrique)";
+    if (!parRub[r]) parRub[r] = 0;
+    parRub[r] += d.montant;
+  });
+  var rubs = Object.keys(parRub);
+  rubs.sort();
+  if (rubs.length === 0) {
+    html += '<p class="empty">Aucune dépense.</p>';
+  } else {
+    for (var i = 0; i < rubs.length; i++) {
+      html += '<p class="total-line">' + escapeHtml(rubs[i]) + " : " + formatMontant(parRub[rubs[i]]) + "</p>";
+    }
+  }
+  html += "</div>";
+  return html;
+}
+
+function renderBordRevenus(mois) {
+  var revs = revenusDuMois(mois);
+  var parLib = {};
+  revs.forEach(function (r) {
+    var l = r.libelle || "(sans libellé)";
+    if (!parLib[l]) parLib[l] = 0;
+    parLib[l] += r.montant;
+  });
+  var libs = Object.keys(parLib);
+  libs.sort();
+  if (libs.length === 0) {
+    return '<p class="empty">Aucun revenu.</p>';
+  }
+  var html = "";
+  for (var i = 0; i < libs.length; i++) {
+    html += '<p class="total-line">' + escapeHtml(libs[i]) + " : " + formatMontant(parLib[libs[i]]) + "</p>";
+  }
+  return html;
+}
+
+/* ============================================================
+   DÉPENSES
+   ============================================================ */
+function changeDepMois(v) { etat.depMois = v; renderDepenses(); }
+function changeDepFiltre(v) { etat.depFiltre = v; renderDepenses(); }
+
+function sousRubriquesDe(principal) {
+  return principal === "Essentiel" ? db.sousRubriquesEssentiel : db.sousRubriquesGaspi;
+}
+
+function renderDepenses() {
+  var panel = document.getElementById("panel-depenses");
+  var mois = etat.depMois;
+
+  var html = "";
+  html += "<h2>Ajouter une dépense</h2>";
+  html += derniereModifHtml();
+  html += '<div class="group">';
+
+  html += '<label for="dep-montant">Montant en euros</label>';
+  html += '<input type="number" inputmode="decimal" step="0.01" id="dep-montant" placeholder="Ex : 25,00">';
+
+  html += '<label for="dep-principal">Libellé principal</label>';
+  html += '<select id="dep-principal" onchange="onDepPrincipalChange()">';
+  html += '<option value="Essentiel">Essentiel</option>';
+  html += '<option value="Gaspi">Gaspi</option>';
+  html += "</select>";
+
+  html += '<label for="dep-sousrub">Sous-rubrique</label>';
+  html += '<select id="dep-sousrub" onchange="onDepSousRubChange()">';
+  html += renderSousRubOptions("Essentiel");
+  html += "</select>";
+
+  html += '<div id="dep-nouvelle-wrap" class="field-inline" hidden>';
+  html += '<label for="dep-nouvelle">Nom de la nouvelle sous-rubrique</label>';
+  html += '<input type="text" id="dep-nouvelle" placeholder="Ex : Loyer">';
+  html += "</div>";
+
+  html += '<label for="dep-mois">Mois (obligatoire)</label>';
+  html += moisFormSelectHtml("dep-mois");
+
+  html += '<label for="dep-jour">Jour du mois (facultatif)</label>';
+  html += '<input type="number" inputmode="numeric" min="1" max="31" id="dep-jour" placeholder="Ex : 14">';
+  html += '<p class="hint">Laissez vide si vous ne voulez pas préciser le jour.</p>';
+
+  html += '<button class="btn" onclick="ajouterDepense()">Ajouter la dépense</button>';
+  html += "</div>";
+
+  html += "<hr>";
+
+  /* Filtre */
+  html += "<h2>Dépenses de " + escapeHtml(moisLisible(mois)) + "</h2>";
+  html += moisSelectHtml("dep-mois-vue", mois, "changeDepMois");
+
+  html += '<label for="dep-filtre">Affichage</label>';
+  html += '<select id="dep-filtre" onchange="changeDepFiltre(this.value)">';
+  html += '<option value="rubrique"' + (etat.depFiltre === "rubrique" ? " selected" : "") + ">Par rubrique</option>";
+  html += '<option value="journalier"' + (etat.depFiltre === "journalier" ? " selected" : "") + ">Journalier</option>";
+  html += "</select>";
+
+  if (etat.depFiltre === "rubrique") {
+    html += renderDepFiltreRubrique(mois);
+  } else {
+    html += renderDepFiltreJournalier(mois);
+  }
+
+  panel.innerHTML = html;
+}
+
+function renderSousRubOptions(principal) {
+  var list = sousRubriquesDe(principal).slice();
+  list.sort();
+  var html = "";
+  for (var i = 0; i < list.length; i++) {
+    html += '<option value="' + escapeHtml(list[i]) + '">' + escapeHtml(list[i]) + "</option>";
+  }
+  html += '<option value="__nouvelle__">+ Nouvelle sous-rubrique…</option>';
+  return html;
+}
+
+function onDepPrincipalChange() {
+  var principal = document.getElementById("dep-principal").value;
+  var sel = document.getElementById("dep-sousrub");
+  sel.innerHTML = renderSousRubOptions(principal);
+  onDepSousRubChange();
+}
+
+function onDepSousRubChange() {
+  var val = document.getElementById("dep-sousrub").value;
+  var wrap = document.getElementById("dep-nouvelle-wrap");
+  if (val === "__nouvelle__") {
+    wrap.removeAttribute("hidden");
+  } else {
+    wrap.setAttribute("hidden", "");
+  }
+}
+
+function ajouterDepense() {
+  var montantRaw = document.getElementById("dep-montant").value;
+  var montant = parseFloat(String(montantRaw).replace(",", "."));
+  if (isNaN(montant) || montant <= 0) {
+    alert("Veuillez saisir un montant valide supérieur à zéro.");
+    return;
+  }
+  var principal = document.getElementById("dep-principal").value;
+  var sousVal = document.getElementById("dep-sousrub").value;
+  var sousRubrique;
+  if (sousVal === "__nouvelle__") {
+    sousRubrique = document.getElementById("dep-nouvelle").value.trim();
+    if (!sousRubrique) {
+      alert("Veuillez saisir le nom de la nouvelle sous-rubrique.");
+      return;
+    }
+    var liste = sousRubriquesDe(principal);
+    if (liste.indexOf(sousRubrique) === -1) {
+      liste.push(sousRubrique);
+    }
+  } else {
+    sousRubrique = sousVal;
+    if (!sousRubrique) {
+      alert("Veuillez sélectionner ou créer une sous-rubrique.");
+      return;
+    }
+  }
+  var mois = document.getElementById("dep-mois").value;
+  if (!mois) {
+    alert("Le mois est obligatoire.");
+    return;
+  }
+  var jourRaw = document.getElementById("dep-jour").value;
+  var jour = null;
+  if (jourRaw !== "" && jourRaw !== null) {
+    var j = parseInt(jourRaw, 10);
+    if (!isNaN(j) && j >= 1 && j <= 31) jour = j;
+  }
+
+  db.depenses.push({
+    id: genId(),
+    montant: montant,
+    principal: principal,
+    sousRubrique: sousRubrique,
+    mois: mois,
+    jour: jour
+  });
+  saveDb();
+  etat.depMois = mois;
+  renderDepenses();
+}
+
+function renderDepFiltreRubrique(mois) {
+  var html = "";
+  html += renderDepCategorieListe(mois, "Essentiel");
+  html += renderDepCategorieListe(mois, "Gaspi");
+  return html;
+}
+
+function renderDepCategorieListe(mois, cat) {
+  var deps = depensesDuMois(mois).filter(function (d) { return d.principal === cat; });
+  var total = deps.reduce(function (s, d) { return s + d.montant; }, 0);
+  var key = cat === "Essentiel" ? "ess" : "gas";
+  var accId = "acc-depl-" + key;
+  var regId = "reg-depl-" + key;
+
+  var html = "";
+  html += '<button class="accordion-btn" id="' + accId + '" aria-expanded="false" aria-controls="' + regId + '" onclick="toggleAccordion(\'' + accId + '\',\'' + regId + '\')">';
+  html += escapeHtml(cat) + " : " + formatMontant(total);
+  html += "</button>";
+  html += '<div class="accordion-region" id="' + regId + '" role="region" aria-labelledby="' + accId + '" hidden>';
+
+  deps.sort(function (a, b) {
+    var ja = a.jour || 99;
+    var jb = b.jour || 99;
+    return ja - jb;
+  });
+  if (deps.length === 0) {
+    html += '<p class="empty">Aucune dépense.</p>';
+  } else {
+    for (var i = 0; i < deps.length; i++) {
+      html += renderLigneDepense(deps[i]);
+    }
+  }
+  html += "</div>";
+  return html;
+}
+
+function renderDepFiltreJournalier(mois) {
+  var deps = depensesDuMois(mois).slice();
+  if (deps.length === 0) {
+    return '<p class="empty">Aucune dépense ce mois-ci.</p>';
+  }
+  var parJour = {};
+  var sansJour = [];
+  deps.forEach(function (d) {
+    if (d.jour) {
+      var k = d.jour;
+      if (!parJour[k]) parJour[k] = [];
+      parJour[k].push(d);
+    } else {
+      sansJour.push(d);
+    }
+  });
+  var jours = Object.keys(parJour).map(function (x) { return parseInt(x, 10); });
+  jours.sort(function (a, b) { return a - b; });
+
+  var html = "";
+  for (var i = 0; i < jours.length; i++) {
+    var j = jours[i];
+    var liste = parJour[j];
+    var totJ = liste.reduce(function (s, d) { return s + d.montant; }, 0);
+    html += '<p class="total-line">Jour ' + j + " : " + formatMontant(totJ) + "</p>";
+    for (var k = 0; k < liste.length; k++) {
+      html += renderLigneDepense(liste[k]);
+    }
+  }
+  if (sansJour.length > 0) {
+    var totS = sansJour.reduce(function (s, d) { return s + d.montant; }, 0);
+    html += '<p class="total-line">Sans jour précisé : ' + formatMontant(totS) + "</p>";
+    for (var m = 0; m < sansJour.length; m++) {
+      html += renderLigneDepense(sansJour[m]);
+    }
+  }
+  return html;
+}
+
+function renderLigneDepense(d) {
+  var jourTxt = d.jour ? (" — jour " + d.jour) : "";
+  var html = "";
+  html += '<div class="line">';
+  html += "<div>" + escapeHtml(d.principal) + " — " + escapeHtml(d.sousRubrique) + jourTxt + "</div>";
+  html += '<div class="amount">' + formatMontant(d.montant) + "</div>";
+  html += '<div class="row-actions">';
+  html += '<button class="btn btn-small btn-secondary" onclick="editDepense(\'' + d.id + '\')">Modifier</button>';
+  html += '<button class="btn btn-small btn-danger" onclick="supprimerDepense(\'' + d.id + '\')">Supprimer</button>';
+  html += "</div>";
+  html += "</div>";
+  return html;
+}
+
+function supprimerDepense(id) {
+  var dep = null;
+  for (var i = 0; i < db.depenses.length; i++) {
+    if (db.depenses[i].id === id) { dep = db.depenses[i]; break; }
+  }
+  if (!dep) return;
+  var ok = confirm("Supprimer cette dépense : " + dep.sousRubrique + ", " + formatMontant(dep.montant) + " ?");
+  if (!ok) return;
+  db.depenses = db.depenses.filter(function (d) { return d.id !== id; });
+  saveDb();
+  renderDepenses();
+}
+
+function editDepense(id) {
+  var dep = null;
+  for (var i = 0; i < db.depenses.length; i++) {
+    if (db.depenses[i].id === id) { dep = db.depenses[i]; break; }
+  }
+  if (!dep) return;
+  var nouv = prompt("Modifier le montant en euros pour " + dep.sousRubrique + " :", String(dep.montant).replace(".", ","));
+  if (nouv === null) return;
+  var m = parseFloat(String(nouv).replace(",", "."));
+  if (isNaN(m) || m <= 0) {
+    alert("Montant invalide.");
+    return;
+  }
+  dep.montant = m;
+  saveDb();
+  renderDepenses();
+}
+
+/* ============================================================
+   REVENUS
+   ============================================================ */
+function changeRevMois(v) { etat.revMois = v; renderRevenus(); }
+
+function renderRevenus() {
+  var panel = document.getElementById("panel-revenus");
+  var mois = etat.revMois;
+
+  var html = "";
+  html += "<h2>Ajouter un revenu</h2>";
+  html += derniereModifHtml();
+  html += '<div class="group">';
+
+  html += '<label for="rev-montant">Montant en euros</label>';
+  html += '<input type="number" inputmode="decimal" step="0.01" id="rev-montant" placeholder="Ex : 1200,00">';
+
+  html += '<label for="rev-libelle">Libellé</label>';
+  html += '<select id="rev-libelle" onchange="onRevLibelleChange()">';
+  html += renderRevLibelleOptions();
+  html += "</select>";
+
+  html += '<div id="rev-nouveau-wrap" class="field-inline" hidden>';
+  html += '<label for="rev-nouveau">Nom du nouveau libellé</label>';
+  html += '<input type="text" id="rev-nouveau" placeholder="Ex : Marché">';
+  html += "</div>";
+
+  html += '<label for="rev-mois">Mois (obligatoire)</label>';
+  html += moisFormSelectHtml("rev-mois");
+
+  html += '<button class="btn" onclick="ajouterRevenu()">Ajouter le revenu</button>';
+  html += "</div>";
+
+  html += "<hr>";
+  html += "<h2>Revenus de " + escapeHtml(moisLisible(mois)) + "</h2>";
+  html += moisSelectHtml("rev-mois-vue", mois, "changeRevMois");
+
+  html += renderRevenusListe(mois);
+
+  panel.innerHTML = html;
+}
+
+function renderRevLibelleOptions() {
+  var list = db.libellesRevenus.slice();
+  list.sort();
+  var html = "";
+  if (list.length === 0) {
+    html += '<option value="">— Sélectionner —</option>';
+  }
+  for (var i = 0; i < list.length; i++) {
+    html += '<option value="' + escapeHtml(list[i]) + '">' + escapeHtml(list[i]) + "</option>";
+  }
+  html += '<option value="__nouveau__">+ Nouveau libellé…</option>';
+  return html;
+}
+
+function onRevLibelleChange() {
+  var val = document.getElementById("rev-libelle").value;
+  var wrap = document.getElementById("rev-nouveau-wrap");
+  if (val === "__nouveau__") {
+    wrap.removeAttribute("hidden");
+  } else {
+    wrap.setAttribute("hidden", "");
+  }
+}
+
+function ajouterRevenu() {
+  var montantRaw = document.getElementById("rev-montant").value;
+  var montant = parseFloat(String(montantRaw).replace(",", "."));
+  if (isNaN(montant) || montant <= 0) {
+    alert("Veuillez saisir un montant valide supérieur à zéro.");
+    return;
+  }
+  var libVal = document.getElementById("rev-libelle").value;
+  var libelle;
+  if (libVal === "__nouveau__") {
+    libelle = document.getElementById("rev-nouveau").value.trim();
+    if (!libelle) {
+      alert("Veuillez saisir le nom du nouveau libellé.");
+      return;
+    }
+    if (db.libellesRevenus.indexOf(libelle) === -1) {
+      db.libellesRevenus.push(libelle);
+    }
+  } else {
+    libelle = libVal;
+    if (!libelle) {
+      alert("Veuillez sélectionner ou créer un libellé.");
+      return;
+    }
+  }
+  var mois = document.getElementById("rev-mois").value;
+  if (!mois) {
+    alert("Le mois est obligatoire.");
+    return;
+  }
+
+  db.revenus.push({
+    id: genId(),
+    montant: montant,
+    libelle: libelle,
+    mois: mois
+  });
+  saveDb();
+  etat.revMois = mois;
+  renderRevenus();
+}
+
+function renderRevenusListe(mois) {
+  var revs = revenusDuMois(mois);
+  if (revs.length === 0) {
+    return '<p class="empty">Aucun revenu ce mois-ci.</p>';
+  }
+  /* regroupé par libellé, comme le tableau de bord */
+  var parLib = {};
+  revs.forEach(function (r) {
+    var l = r.libelle || "(sans libellé)";
+    if (!parLib[l]) parLib[l] = [];
+    parLib[l].push(r);
+  });
+  var libs = Object.keys(parLib);
+  libs.sort();
+
+  var html = "";
+  for (var i = 0; i < libs.length; i++) {
+    var liste = parLib[libs[i]];
+    var tot = liste.reduce(function (s, r) { return s + r.montant; }, 0);
+    html += '<p class="total-line">' + escapeHtml(libs[i]) + " : " + formatMontant(tot) + "</p>";
+    for (var k = 0; k < liste.length; k++) {
+      html += renderLigneRevenu(liste[k]);
+    }
+  }
+  return html;
+}
+
+function renderLigneRevenu(r) {
+  var html = "";
+  html += '<div class="line">';
+  html += "<div>" + escapeHtml(r.libelle) + "</div>";
+  html += '<div class="amount">' + formatMontant(r.montant) + "</div>";
+  html += '<div class="row-actions">';
+  html += '<button class="btn btn-small btn-secondary" onclick="editRevenu(\'' + r.id + '\')">Modifier</button>';
+  html += '<button class="btn btn-small btn-danger" onclick="supprimerRevenu(\'' + r.id + '\')">Supprimer</button>';
+  html += "</div>";
+  html += "</div>";
+  return html;
+}
+
+function supprimerRevenu(id) {
+  var rev = null;
+  for (var i = 0; i < db.revenus.length; i++) {
+    if (db.revenus[i].id === id) { rev = db.revenus[i]; break; }
+  }
+  if (!rev) return;
+  var ok = confirm("Supprimer ce revenu : " + rev.libelle + ", " + formatMontant(rev.montant) + " ?");
+  if (!ok) return;
+  db.revenus = db.revenus.filter(function (r) { return r.id !== id; });
+  saveDb();
+  renderRevenus();
+}
+
+function editRevenu(id) {
+  var rev = null;
+  for (var i = 0; i < db.revenus.length; i++) {
+    if (db.revenus[i].id === id) { rev = db.revenus[i]; break; }
+  }
+  if (!rev) return;
+  var nouv = prompt("Modifier le montant en euros pour " + rev.libelle + " :", String(rev.montant).replace(".", ","));
+  if (nouv === null) return;
+  var m = parseFloat(String(nouv).replace(",", "."));
+  if (isNaN(m) || m <= 0) {
+    alert("Montant invalide.");
+    return;
+  }
+  rev.montant = m;
+  saveDb();
+  renderRevenus();
+}
+
+/* ============================================================
+   HISTORIQUE
+   ============================================================ */
+function changeHistAnnee(v) { etat.histAnnee = v; renderHistorique(); }
+
+function renderHistorique() {
+  var panel = document.getElementById("panel-historique");
+  var annees = anneesDisponibles();
+  if (annees.indexOf(etat.histAnnee) === -1) {
+    annees.unshift(etat.histAnnee);
+    annees.sort();
+    annees.reverse();
+  }
+  var annee = etat.histAnnee;
+
+  var html = "";
+  html += "<h2>Historique</h2>";
+  html += derniereModifHtml();
+  html += '<label for="hist-annee">Année</label>';
+  html += '<select id="hist-annee" onchange="changeHistAnnee(this.value)">';
+  for (var i = 0; i < annees.length; i++) {
+    html += '<option value="' + escapeHtml(annees[i]) + '"' + (annees[i] === annee ? " selected" : "") + ">" + escapeHtml(annees[i]) + "</option>";
+  }
+  html += "</select>";
+
+  /* totaux annuels */
+  var totDepAn = 0, totRevAn = 0;
+  for (var mo = 1; mo <= 12; mo++) {
+    var mk = annee + "-" + pad2(mo);
+    totDepAn += totalDepensesMois(mk);
+    totRevAn += totalRevenusMois(mk);
+  }
+  var diffAn = totRevAn - totDepAn;
+
+  html += "<hr>";
+  html += '<p class="total-line">Total dépenses : ' + formatMontant(totDepAn) + "</p>";
+  html += '<p class="total-line">Total revenus : ' + formatMontant(totRevAn) + "</p>";
+  html += '<p class="total-line">Différence : <span class="' + classeMontant(diffAn) + '">' + formatMontantSigne(diffAn) + "</span></p>";
+  html += "<hr>";
+
+  /* accordéon par mois */
+  for (var m = 1; m <= 12; m++) {
+    var moisKey = annee + "-" + pad2(m);
+    var td = totalDepensesMois(moisKey);
+    var tr = totalRevenusMois(moisKey);
+    var diff = tr - td;
+    var accId = "acc-hist-" + m;
+    var regId = "reg-hist-" + m;
+
+    html += '<button class="accordion-btn" id="' + accId + '" aria-expanded="false" aria-controls="' + regId + '" onclick="toggleAccordion(\'' + accId + '\',\'' + regId + '\')">';
+    html += escapeHtml(MOIS_NOMS[m - 1]);
+    html += "</button>";
+    html += '<div class="accordion-region" id="' + regId + '" role="region" aria-labelledby="' + accId + '" hidden>';
+    html += '<p class="total-line">Dépenses : ' + formatMontant(td) + "</p>";
+    html += '<p class="total-line">Revenus : ' + formatMontant(tr) + "</p>";
+    html += '<p class="total-line">Différence : <span class="' + classeMontant(diff) + '">' + formatMontantSigne(diff) + "</span></p>";
+    html += "</div>";
+  }
+
+  panel.innerHTML = html;
+}
+
+/* ---------- Démarrage ---------- */
+loadDb();
+render();
+</script>
+</body>
+</html>
